@@ -2,40 +2,33 @@ import sys
 import os
 import time
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-import utils
+from utils import send_and_print, BASE_URL, save_config
 
-# Endpoint Configuration
-endpoint = "/auth/register"
-url = f"{utils.BASE_URL}{endpoint}"
+# Generate a unique email to avoid conflict
+unique_id = int(time.time())
+email = f"testuser_{unique_id}@example.com"
 
-# Unique email generator for repeated testing
-timestamp = int(time.time())
+print(f"--- REGISTERING NEW USER: {email} ---")
+
+url = f"{BASE_URL}/auth/register"
+
 payload = {
-    "email": f"user_{timestamp}@example.com",
+    "name": "Test User Automator",
+    "email": email,
     "password": "password123",
-    "name": "Test User",
     "role": "user",
 }
 
-# Execute
-response = utils.send_and_print(
+response = send_and_print(
     url=url,
     method="POST",
     body=payload,
-    headers={"Content-Type": "application/json"},
     output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
 )
 
-# Save tokens for future requests
+# Optional: Save tokens if you want to use this user immediately
 if response.status_code == 201:
     data = response.json()
-    if data:
-        user = data.get('user', {})
-        tokens = data.get('tokens', {})
-        
-        # Save to secrets.json
-        utils.save_config("user_id", user.get('id'))
-        utils.save_config("user_email", user.get('email'))
-        utils.save_config("access_token", tokens.get('access', {}).get('token'))
-        utils.save_config("refresh_token", tokens.get('refresh', {}).get('token'))
-        print("\n[INFO] User credentials and tokens saved to secrets.json")
+    save_config("accessToken", data['tokens']['access']['token'])
+    save_config("refreshToken", data['tokens']['refresh']['token'])
+    print(">>> Registration successful. Tokens saved to secrets.json.")

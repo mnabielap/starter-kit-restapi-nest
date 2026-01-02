@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PageOptionsDto } from '../../common/dtos/page-options.dto';
 import { Hash } from '../../common/utils/hash.util';
+import { Role } from '../../common/constants/roles.constant';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +31,7 @@ export class UsersService {
     const hashedPassword = await Hash.make(createUserDto.password);
     
     const user = this.usersRepository.create({
+      role: Role.USER,
       ...createUserDto,
       password: hashedPassword,
     });
@@ -40,31 +42,74 @@ export class UsersService {
   async findAll(pageOptionsDto: PageOptionsDto) {
     const queryBuilder = this.usersRepository.createQueryBuilder('user');
 
-    if (pageOptionsDto.q) {
-      queryBuilder.where('user.name LIKE :q OR user.email LIKE :q', {
-        q: `%${pageOptionsDto.q}%`,
-      });
+    // --- 1. Search & Scope ---
+    if (pageOptionsDto.search) {
+      const q = `%${pageOptionsDto.search}%`;
+      const scope = pageOptionsDto.scope || 'all';
+
+      if (scope === 'all') {
+        // Search across Name, Email, and ID
+        queryBuilder.andWhere(
+          '(user.name LIKE :q OR user.email LIKE :q OR CAST(user.id AS TEXT) LIKE :q)',
+          { q },
+        );
+      } else if (scope === 'name') {
+        queryBuilder.andWhere('user.name LIKE :q', { q });
+      } else if (scope === 'email') {
+        queryBuilder.andWhere('user.email LIKE :q', { q });
+      } else if (scope === 'id') {
+        // Cast UUID to text for partial LIKE search
+        queryBuilder.andWhere('CAST(user.id AS TEXT) LIKE :q', { q });
+      }
     }
 
+    // --- 2. Filter (Role) ---
+    if (pageOptionsDto.role) {
+      queryBuilder.andWhere('user.role = :role', { role: pageOptionsDto.role });
+    }
+
+    // --- 3. Sorting ---
+    if (pageOptionsDto.sortBy) {
+      // Format: "field:order" -> "created_at:desc"
+      const parts = pageOptionsDto.sortBy.split(':');
+      const field = parts[0];
+      const order = (parts[1] || 'DESC').toUpperCase() as 'ASC' | 'DESC';
+      
+      // Map external query params (snake_case) to internal Entity properties (camelCase)
+      const fieldMap: Record<string, string> = {
+        'created_at': 'createdAt',
+        'updated_at': 'updatedAt',
+        'id': 'id',
+        'name': 'name',
+        'email': 'email',
+        'role': 'role',
+      };
+
+      const sortField = fieldMap[field] ? `user.${fieldMap[field]}` : `user.${field}`;
+      queryBuilder.addOrderBy(sortField, order);
+    } else {
+      queryBuilder.orderBy('user.createdAt', 'DESC');
+    }
+
+    // --- 4. Pagination ---
     queryBuilder
-      .orderBy('user.createdAt', pageOptionsDto.order)
       .skip(pageOptionsDto.skip)
-      .take(pageOptionsDto.take);
+      .take(pageOptionsDto.limit);
 
     const itemCount = await queryBuilder.getCount();
     const { entities } = await queryBuilder.getRawAndEntities();
 
     const pageMetaDto = {
       page: pageOptionsDto.page,
-      take: pageOptionsDto.take,
+      limit: pageOptionsDto.limit,
       itemCount,
-      pageCount: Math.ceil(itemCount / pageOptionsDto.take),
+      pageCount: Math.ceil(itemCount / pageOptionsDto.limit),
       hasPreviousPage: pageOptionsDto.page > 1,
-      hasNextPage: pageOptionsDto.page < Math.ceil(itemCount / pageOptionsDto.take),
+      hasNextPage: pageOptionsDto.page < Math.ceil(itemCount / pageOptionsDto.limit),
     };
 
     return {
-      data: entities,
+      results: entities,
       meta: pageMetaDto,
     };
   }

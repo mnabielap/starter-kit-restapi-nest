@@ -7,7 +7,7 @@
 ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
 
 A production-ready **RESTful API Starter Kit** built with **NestJS**.
-This project is a modern, type-safe successor to the classic Express boilerplate, featuring a dual-database architecture (**PostgreSQL** & **SQLite**), Serverless Vercel support, Docker support, and automated API testing scripts.
+This project is a modern, type-safe, featuring a dual-database architecture (**PostgreSQL** & **SQLite**), Serverless Vercel support, Docker support, and automated API testing scripts.
 
 ## ✨ Features
 
@@ -237,9 +237,9 @@ python A1.auth_register.py
 Once registered, you can run any other script. The system automatically reads the valid token from `secrets.json`.
 ```bash
 python A2.auth_login.py
-python B2.users_get_all.py
-python B4.users_update.py
-python A3.auth_refresh_tokens.py
+python B2.user_get_all.py
+python B4.user_update.py
+python A3.auth_refresh.py
 ```
 
 ---

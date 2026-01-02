@@ -10,6 +10,9 @@ import {
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
+  ForbiddenException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -48,10 +51,8 @@ export class UsersController {
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string, @GetUser() currentUser: User) {
-    // Users can only see their own profile unless they are admin
     if (currentUser.role !== Role.ADMIN && currentUser.id !== id) {
-       // Note: In real world, you might want to throw ForbiddenException here.
-       // For now, we follow the service logic or basic check.
+       throw new ForbiddenException('You can only view your own profile');
     }
     return this.usersService.findOne(id);
   }
@@ -63,14 +64,20 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @GetUser() currentUser: User,
   ) {
-    if (currentUser.role !== Role.ADMIN && currentUser.id !== id) {
-      // Implement specific forbidden logic if needed
+    if (currentUser.role !== Role.ADMIN) {
+      if (currentUser.id !== id) {
+        throw new ForbiddenException('You can only update your own profile');
+      }
+      if (updateUserDto.role) {
+        delete updateUserDto.role;
+      }
     }
     return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete user (Admin only)' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

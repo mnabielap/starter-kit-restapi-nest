@@ -17,6 +17,7 @@ import { User } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { Hash } from '../../common/utils/hash.util';
+import { Role } from '../../common/constants/roles.constant';
 
 @Injectable()
 export class AuthService {
@@ -30,7 +31,11 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const user = await this.usersService.create(registerDto);
+    const user = await this.usersService.create({
+      ...registerDto,
+      role: Role.USER,
+    });
+    
     const tokens = await this.generateAuthTokens(user);
     return { user, tokens };
   }

@@ -1,5 +1,5 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, Matches } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, Matches, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Role } from '../../../common/constants/roles.constant';
 
 export class CreateUserDto {
@@ -21,7 +21,8 @@ export class CreateUserDto {
   @Matches(/[a-zA-Z]/, { message: 'Password must contain at least one letter' })
   password: string;
 
-  @ApiProperty({ enum: Role, default: Role.USER })
+  @ApiPropertyOptional({ enum: Role, default: Role.USER })
+  @IsOptional()
   @IsEnum(Role)
-  role: Role;
+  role?: Role;
 }

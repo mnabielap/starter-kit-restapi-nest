@@ -41,6 +41,7 @@ docker-data/
 
 # NestJS CLI
 .nest-cli.json.lock
+tsconfig.build.tsbuildinfo
 
 **/__pycache__
 

@@ -1,46 +1,51 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min, IsString } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Min, Max } from 'class-validator';
 
-export enum Order {
-  ASC = 'ASC',
-  DESC = 'DESC',
+export enum Scope {
+  ALL = 'all',
+  NAME = 'name',
+  EMAIL = 'email',
+  ID = 'id',
 }
 
 export class PageOptionsDto {
-  @ApiPropertyOptional({ enum: Order, default: Order.DESC })
-  @IsEnum(Order)
+  @ApiPropertyOptional()
+  @IsString()
   @IsOptional()
-  readonly order?: Order = Order.DESC;
+  readonly search?: string;
 
-  @ApiPropertyOptional({
-    minimum: 1,
-    default: 1,
-  })
+  @ApiPropertyOptional({ enum: Scope, default: Scope.ALL })
+  @IsEnum(Scope)
+  @IsOptional()
+  readonly scope?: Scope = Scope.ALL;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  readonly role?: string;
+
+  @ApiPropertyOptional({ example: 'created_at:desc', description: 'Format: field:order' })
+  @IsString()
+  @IsOptional()
+  readonly sortBy?: string;
+
+  @ApiPropertyOptional({ minimum: 1, default: 1 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @IsOptional()
   readonly page?: number = 1;
 
-  @ApiPropertyOptional({
-    minimum: 1,
-    maximum: 50,
-    default: 10,
-  })
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 10 })
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(50)
+  @Max(100)
   @IsOptional()
-  readonly take?: number = 10;
-  
-  @ApiPropertyOptional()
-  @IsString()
-  @IsOptional()
-  readonly q?: string; // Search query
+  readonly limit?: number = 10;
 
   get skip(): number {
-    return (this.page - 1) * this.take;
+    return (this.page - 1) * this.limit;
   }
 }
